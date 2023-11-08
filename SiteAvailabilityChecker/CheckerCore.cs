@@ -1,5 +1,6 @@
 ﻿using Core;
 using log4net;
+using Microsoft.Owin.Hosting;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -14,10 +15,11 @@ namespace SiteAvailabilityChecker
 {
     public class CheckerCore : ServiceBase
     {
-        private static ILog logger = log4net.LogManager.GetLogger("Program");
+        private static ILog logger = log4net.LogManager.GetLogger("CheckerCore");
 
         private static System.Threading.Timer timer = null;
 
+        private IDisposable webApiHandle = null;
 
 
         public void Start(string[] args)
@@ -39,10 +41,27 @@ namespace SiteAvailabilityChecker
             logger.Debug($"Check interval is {intervalInMins} minutes");
 
             timer = new Timer(timerCallback, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(intervalInMins));
+
+            var portStr = ConfigurationManager.AppSettings.Get("ApiPort");
+            if (!int.TryParse(portStr, out int port))
+            {
+                logger.Error("Port number for API is not parsable. Will use 8181");
+                port = 8181;
+            }
+            LaunchWebApi(port);
         }
 
 
+        protected void LaunchWebApi(int port)
+        {
+            // Startup full web-api:
+            var webApiHttpsUrl = "http://*:" + port;
 
+            webApiHandle = WebApp.Start<API.WebApiConfig>(webApiHttpsUrl);
+        }
+
+
+            
         private static void timerCallback(object state)
         {
             try
@@ -63,7 +82,6 @@ namespace SiteAvailabilityChecker
                         siteProblemDetail = $"Site response indicated failure: {siteResponse.StatusCode} {siteResponse.ReasonPhrase}\n";
                     }
 
-
                     var expectedIp = ConfigurationManager.AppSettings.Get("ExpectedIp");
                     var ip = System.Net.Dns.GetHostAddresses(url.Host)[0];
                     if (ip.ToString() != expectedIp)
@@ -77,7 +95,10 @@ namespace SiteAvailabilityChecker
                         logger.Debug($"IP is {ip} as expected");
                     }
 
-                    new ProcessCommunication().WriteStatusMessage(siteProblem, siteProblemDetail);
+                    CurrentState.StatusMessage.SerialNumber++;
+                    CurrentState.StatusMessage.Timestamp = DateTime.Now;
+                    CurrentState.StatusMessage.Status = siteProblem;
+                    CurrentState.StatusMessage.StatusDescription = siteProblemDetail;
                 }
             }
             catch (Exception ex)
