@@ -33,7 +33,7 @@ namespace Core
             Message msg = new Message();
             msg.Timestamp = DateTime.Now;
             msg.SerialNumber = ++_serialNumber;
-            msg.StatusMessage = statusMessage;
+            msg.StatusDescription = statusMessage;
             msg.Status = status;
 
             // serialize the variable 'message1' and write it to the memory mapped file

@@ -19,7 +19,7 @@ namespace Core
 
         public StatusValues Status;
 
-        public string StatusMessage;
+        public string StatusDescription;
     }
 
 
