@@ -122,6 +122,7 @@ namespace SysTrayApp
 
         void ShowConfig(object sender, EventArgs e)
         {
+            logger.Debug($"Show config");
             // If we are already showing the window, merely focus it.
             if (configWindow.Visible)
             {
@@ -136,6 +137,9 @@ namespace SysTrayApp
 
         void Exit(object sender, EventArgs e)
         {
+            logger.Info($"Exit called");
+            System.Threading.Thread.Sleep(250);
+
             // We must manually tidy up and remove the icon before we exit.
             // Otherwise it will be left behind until the user mouses over.
             notifyIcon.Visible = false;
